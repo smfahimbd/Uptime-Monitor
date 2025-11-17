@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - UptimeRobot</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f23;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 30px 20px;
+            box-shadow: 2px 0 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+        .sidebar-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .sidebar-header h2 {
+            color: #00d4ff;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .sidebar-header p {
+            color: #a0a0a0;
+            font-size: 14px;
+        }
+        .sidebar-menu {
+            list-style: none;
+        }
+        .sidebar-menu li {
+            margin-bottom: 10px;
+        }
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            color: #e0e0e0;
+            text-decoration: none;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            transform: translateX(5px);
+        }
+        .sidebar-menu i {
+            margin-right: 15px;
+            width: 20px;
+            text-align: center;
+        }
+        .main-content {
+            margin-left: 280px;
+            padding: 30px;
+            min-height: 100vh;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #2a2a3e;
+        }
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0;
+        }
+        .header-stats {
+            display: flex;
+            gap: 30px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #00d4ff;
+            display: block;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #a0a0a0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .analytics-card {
+            background: linear-gradient(135deg, #1e1e2f 0%, #2a2a3e 100%);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            border: 1px solid #3a3a4e;
+        }
+        .analytics-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+        .analytics-card h3 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #00d4ff;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .chart-container {
+            height: 300px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .performance-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .metric-card {
+            background: linear-gradient(135deg, #1e1e2f 0%, #2a2a3e 100%);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border: 1px solid #3a3a4e;
+        }
+        .metric-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #00d4ff;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .metric-label {
+            font-size: 14px;
+            color: #a0a0a0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .time-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .time-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #e0e0e0;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .time-btn:hover, .time-btn.active {
+            background: rgba(0, 212, 255, 0.1);
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .header {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+            .header-stats {
+                justify-content: center;
+            }
+            .analytics-grid {
+                grid-template-columns: 1fr;
+            }
+            .performance-metrics {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>UptimeRobot</h2>
+            <p>Premium Monitoring</p>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="index.html"><i class="fas fa-tachometer-alt"></i>Dashboard</a></li>
+            <li><a href="monitors.html"><i class="fas fa-server"></i>Monitors</a></li>
+            <li><a href="analytics.html" class="active"><i class="fas fa-chart-line"></i>Analytics</a></li>
+            <li><a href="alerts.html"><i class="fas fa-bell"></i>Alerts</a></li>
+            <li><a href="settings.html"><i class="fas fa-cog"></i>Settings</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1>Analytics</h1>
+            <div class="header-stats">
+                <div class="stat-item">
+                    <span class="stat-value" id="avg-uptime">99.9%</span>
+                    <span class="stat-label">Avg Uptime</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="total-downtime">0h</span>
+                    <span class="stat-label">Total Downtime</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="time-selector">
+            <button class="time-btn active" onclick="setTimeRange(1)">24h</button>
+            <button class="time-btn" onclick="setTimeRange(7)">7d</button>
+            <button class="time-btn" onclick="setTimeRange(30)">30d</button>
+            <button class="time-btn" onclick="setTimeRange(90)">90d</button>
+        </div>
+
+        <div class="performance-metrics">
+            <div class="metric-card">
+                <span class="metric-value" id="response-time">245ms</span>
+                <span class="metric-label">Avg Response Time</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-value" id="total-checks">1,247</span>
+                <span class="metric-label">Total Checks</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-value" id="failed-checks">12</span>
+                <span class="metric-label">Failed Checks</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-value" id="uptime-trend">+0.1%</span>
+                <span class="metric-label">Uptime Trend</span>
+            </div>
+        </div>
+
+        <div class="analytics-grid">
+            <div class="analytics-card">
+                <h3>Uptime Trend</h3>
+                <div class="chart-container">
+                    <canvas id="uptime-chart"></canvas>
+                </div>
+            </div>
+            <div class="analytics-card">
+                <h3>Response Time Distribution</h3>
+                <div class="chart-container">
+                    <canvas id="response-chart"></canvas>
+                </div>
+            </div>
+            <div class="analytics-card">
+                <h3>Monitor Performance</h3>
+                <div class="chart-container">
+                    <canvas id="performance-chart"></canvas>
+                </div>
+            </div>
+            <div class="analytics-card">
+                <h3>Downtime Analysis</h3>
+                <div class="chart-container">
+                    <canvas id="downtime-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTimeRange = 1; // Default to 24h
+
+        function setTimeRange(days) {
+            currentTimeRange = days;
+            document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            loadAnalytics();
+        }
+
+        async function loadAnalytics() {
+            // Placeholder data - in a real app, this would fetch from the backend
+            const mockData = {
+                avgUptime: '99.9%',
+                totalDowntime: '0.5h',
+                avgResponseTime: '245ms',
+                totalChecks: '1,247',
+                failedChecks: '12',
+                uptimeTrend: '+0.1%'
+            };
+
+            document.getElementById('avg-uptime').textContent = mockData.avgUptime;
+            document.getElementById('total-downtime').textContent = mockData.totalDowntime;
+            document.getElementById('response-time').textContent = mockData.avgResponseTime;
+            document.getElementById('total-checks').textContent = mockData.totalChecks;
+            document.getElementById('failed-checks').textContent = mockData.failedChecks;
+            document.getElementById('uptime-trend').textContent = mockData.uptimeTrend;
+
+            // Create charts
+            createUptimeChart();
+            createResponseChart();
+            createPerformanceChart();
+            createDowntimeChart();
+        }
+
+        function createUptimeChart() {
+            const ctx = document.getElementById('uptime-chart').getContext('2d');
+            const labels = [];
+            const data = [];
+
+            // Generate mock data for the selected time range
+            const days = currentTimeRange;
+            for (let i = days - 1; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                labels.push(date.toLocaleDateString());
+                data.push(95 + Math.random() * 5); // Random uptime between 95-100%
+            }
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Uptime %',
+                        data: data,
+                        borderColor: '#4CAF50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 90,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function createResponseChart() {
+            const ctx = document.getElementById('response-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['< 100ms', '100-500ms', '500-1000ms', '> 1000ms'],
+                    datasets: [{
+                        data: [35, 45, 15, 5],
+                        backgroundColor: [
+                            '#4CAF50',
+                            '#00d4ff',
+                            '#FF9800',
+                            '#f44336'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#e0e0e0'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createPerformanceChart() {
+            const ctx = document.getElementById('performance-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Monitor 1', 'Monitor 2', 'Monitor 3', 'Monitor 4', 'Monitor 5'],
+                    datasets: [{
+                        label: 'Uptime %',
+                        data: [99.8, 99.5, 100, 98.9, 99.2],
+                        backgroundColor: [
+                            'rgba(0, 212, 255, 0.8)',
+                            'rgba(76, 175, 80, 0.8)',
+                            'rgba(255, 152, 0, 0.8)',
+                            'rgba(244, 67, 54, 0.8)',
+                            'rgba(156, 39, 176, 0.8)'
+                        ],
+                        borderColor: [
+                            '#00d4ff',
+                            '#4CAF50',
+                            '#FF9800',
+                            '#f44336',
+                            '#9c27b0'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function createDowntimeChart() {
+            const ctx = document.getElementById('downtime-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Downtime (hours)',
+                        data: [0.5, 1.2, 0.3, 2.1, 0.8, 0.1],
+                        borderColor: '#f44336',
+                        backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + 'h';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load analytics on page load
+        window.onload = loadAnalytics;
+    </script>
+</body>
+</html>

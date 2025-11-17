@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitors - UptimeRobot</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f23;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 30px 20px;
+            box-shadow: 2px 0 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+        .sidebar-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .sidebar-header h2 {
+            color: #00d4ff;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .sidebar-header p {
+            color: #a0a0a0;
+            font-size: 14px;
+        }
+        .sidebar-menu {
+            list-style: none;
+        }
+        .sidebar-menu li {
+            margin-bottom: 10px;
+        }
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            color: #e0e0e0;
+            text-decoration: none;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            transform: translateX(5px);
+        }
+        .sidebar-menu i {
+            margin-right: 15px;
+            width: 20px;
+            text-align: center;
+        }
+        .main-content {
+            margin-left: 280px;
+            padding: 30px;
+            min-height: 100vh;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #2a2a3e;
+        }
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0;
+        }
+        .header-stats {
+            display: flex;
+            gap: 30px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #00d4ff;
+            display: block;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #a0a0a0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .add-monitor-section {
+            background: linear-gradient(135deg, #1e1e2f 0%, #2a2a3e 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border: 1px solid #3a3a4e;
+        }
+        .form-group {
+            display: flex;
+            gap: 15px;
+            align-items: stretch;
+            flex-wrap: wrap;
+        }
+        input[type="text"] {
+            flex: 1;
+            min-width: 200px;
+            padding: 15px 20px;
+            border: 2px solid #3a3a4e;
+            border-radius: 10px;
+            font-size: 16px;
+            background: #2a2a3e;
+            color: #e0e0e0;
+            transition: all 0.3s ease;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        }
+        button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .add-btn {
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+        }
+        .monitor-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 30px;
+        }
+        .monitor-card {
+            background: linear-gradient(135deg, #1e1e2f 0%, #2a2a3e 100%);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #3a3a4e;
+        }
+        .monitor-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+        .monitor-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #00d4ff 0%, #0099cc 100%);
+        }
+        .monitor-card.down::before {
+            background: linear-gradient(90deg, #f44336 0%, #d32f2f 100%);
+        }
+        .monitor-name {
+            font-size: 22px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff 0%, #00d4ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            letter-spacing: 0.5px;
+        }
+        .monitor-url {
+            font-size: 14px;
+            color: #00d4ff;
+            word-break: break-all;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 212, 255, 0.05) 100%);
+            padding: 8px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 212, 255, 0.4);
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 15px;
+            font-family: 'Courier New', monospace;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0, 212, 255, 0.1);
+            position: relative;
+        }
+        .monitor-url::before {
+            content: '🔗';
+            margin-right: 8px;
+            font-size: 12px;
+        }
+        .monitor-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .edit-btn {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+        }
+        .edit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+        }
+        .remove-btn {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+        }
+        .remove-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+        }
+        .no-monitors {
+            text-align: center;
+            color: #a0a0a0;
+            font-size: 18px;
+            margin-top: 80px;
+            padding: 40px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .header {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+            .header-stats {
+                justify-content: center;
+            }
+            .monitor-list {
+                grid-template-columns: 1fr;
+            }
+            .form-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>UptimeRobot</h2>
+            <p>Premium Monitoring</p>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="index.html"><i class="fas fa-tachometer-alt"></i>Dashboard</a></li>
+            <li><a href="monitors.html" class="active"><i class="fas fa-server"></i>Monitors</a></li>
+            <li><a href="analytics.html"><i class="fas fa-chart-line"></i>Analytics</a></li>
+            <li><a href="alerts.html"><i class="fas fa-bell"></i>Alerts</a></li>
+            <li><a href="settings.html"><i class="fas fa-cog"></i>Settings</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1>Monitors</h1>
+            <div class="header-stats">
+                <div class="stat-item">
+                    <span class="stat-value" id="total-monitors">0</span>
+                    <span class="stat-label">Total</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="active-monitors">0</span>
+                    <span class="stat-label">Active</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="add-monitor-section">
+            <div class="form-group">
+                <input type="text" id="name-input" placeholder="Monitor Name">
+                <input type="text" id="url-input" placeholder="https://example.com">
+                <button class="add-btn" onclick="addMonitor()">Add Monitor</button>
+            </div>
+        </div>
+
+        <div id="monitor-list" class="monitor-list">
+            <!-- Monitor cards will be inserted here -->
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = 'http://localhost:3000';
+
+        async function addMonitor() {
+            const name = document.getElementById('name-input').value;
+            const url = document.getElementById('url-input').value;
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${baseUrl}/add-url`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, url }),
+                });
+                const data = await response.json();
+                alert(data.message);
+                document.getElementById('name-input').value = '';
+                document.getElementById('url-input').value = '';
+                loadMonitors();
+            } catch (error) {
+                console.error('Error adding monitor:', error);
+                alert('Error adding monitor');
+            }
+        }
+
+        async function loadMonitors() {
+            try {
+                const response = await fetch(`${baseUrl}/status`);
+                const data = await response.json();
+                displayMonitors(data.results);
+            } catch (error) {
+                console.error('Error loading monitors:', error);
+                alert('Error loading monitors');
+            }
+        }
+
+        function displayMonitors(results) {
+            const monitorList = document.getElementById('monitor-list');
+            monitorList.innerHTML = '';
+
+            const totalMonitors = results.length;
+            const activeMonitors = results.filter(r => r.status === 'up').length;
+
+            document.getElementById('total-monitors').textContent = totalMonitors;
+            document.getElementById('active-monitors').textContent = activeMonitors;
+
+            if (results.length === 0) {
+                monitorList.innerHTML = '<div class="no-monitors">No monitors added yet. Add a monitor above to get started!</div>';
+                return;
+            }
+
+            for (const result of results) {
+                const monitorCard = document.createElement('div');
+                monitorCard.className = `monitor-card ${result.status === 'down' ? 'down' : ''}`;
+
+                monitorCard.innerHTML = `
+                    <div class="monitor-name">${result.name || 'Unnamed Monitor'}</div>
+                    <div class="monitor-url">${result.url}</div>
+                    <div class="monitor-actions">
+                        <button class="edit-btn" onclick="editMonitor('${result.url}')">Edit</button>
+                        <button class="remove-btn" onclick="removeMonitor('${result.url}')">Remove</button>
+                    </div>
+                `;
+
+                monitorList.appendChild(monitorCard);
+            }
+        }
+
+        async function removeMonitor(url) {
+            if (!confirm('Are you sure you want to remove this monitor?')) return;
+
+            try {
+                const response = await fetch(`${baseUrl}/remove-url`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url }),
+                });
+                const data = await response.json();
+                alert(data.message);
+                loadMonitors();
+            } catch (error) {
+                console.error('Error removing monitor:', error);
+                alert('Error removing monitor');
+            }
+        }
+
+        function editMonitor(url) {
+            // Placeholder for edit functionality
+            alert('Edit functionality coming soon!');
+        }
+
+        // Load monitors on page load
+        window.onload = loadMonitors;
+    </script>
+</body>
+</html>
